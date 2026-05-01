@@ -1,73 +1,164 @@
-# React + TypeScript + Vite
+# GoalFlow
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Минималистичный таск-менеджер с иерархией Цели → Проекты → Задачи и встроенным учётом времени. Данные хранятся локально в браузере — никакого облака.
 
-Currently, two official plugins are available:
+**Деплой:** https://goalflow-sigma.vercel.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Стек и почему именно это
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Слой | Инструмент | Почему |
+|------|-----------|--------|
+| Фреймворк | React 18 | Компонентная модель, большая экосистема |
+| Сборка | Vite | Быстрый cold start и HMR, нативный ESM |
+| Язык | TypeScript | Типобезопасная модель данных без рантайм-сюрпризов |
+| Хранилище | Dexie.js (IndexedDB) | Реактивные запросы (`useLiveQuery`), транзакции, индексы — без серверной БД |
+| Стейт | Zustand | Минимальный бойлерплейт, persist-middleware для сохранения вида между сессиями |
+| UI | Tailwind CSS v4 + shadcn/ui | Дизайн-система прямо в коде, shadcn копирует компоненты в проект — полный контроль |
+| Роутинг | React Router v6 | URL-based навигация, deep linking, корректные Back/Forward на Vercel |
+| D&D | @dnd-kit/core | Современная замена react-beautiful-dnd, поддержка PointerSensor |
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Архитектура
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Модель данных
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+Goal
+ └── Project (goalId?)
+      └── Task (projectId?, parentId?)
+           └── Subtask (parentId = task.id, глубина = 1)
+                └── TimeEntry (taskId)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+- **Goal** — стратегическая цель (цвет, статус)
+- **Project** — принадлежит цели или существует самостоятельно
+- **Task** — основная единица работы; без `projectId` попадает в **Inbox**
+- **Subtask** — Task с заполненным `parentId` (та же таблица, глубина ограничена 1 уровнем)
+- **TimeEntry** — одна запись таймера; `duration` вычисляется при остановке, суммируется в `task.totalTime`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Хранение данных
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+IndexedDB через Dexie.js. Схема версионируется — при изменении структуры Dexie запускает миграцию. `useLiveQuery` из `dexie-react-hooks` подписывает компоненты на изменения в БД без дополнительного стейта.
+
+Zustand-стор (`persist` middleware) хранит в `localStorage` только UI-состояние: текущий вид (list/kanban). Фильтры сбрасываются при перезагрузке намеренно.
+
+### Ключевые компоненты
+
 ```
+src/
+├── db/
+│   ├── index.ts          # Dexie-схема (версии, индексы)
+│   └── queries.ts        # CRUD-обёртки: goals, projects, tasks, timeEntries
+├── store/
+│   ├── timer.ts          # Активный таймер (taskId, startedAt, timeEntryId)
+│   └── ui.ts             # viewMode, filters, persist
+├── components/
+│   ├── layout/
+│   │   ├── AppLayout.tsx       # Flex-контейнер: Sidebar + main + TaskDetailPanel
+│   │   ├── Sidebar.tsx         # Дерево целей и проектов
+│   │   ├── Header.tsx          # Заголовок + живой счётчик таймера + экспорт
+│   │   ├── GoalItem.tsx        # Раскрываемый пункт цели с проектами
+│   │   ├── InlineCreate.tsx    # Универсальный inline-инпут (Enter=submit, Esc=cancel)
+│   │   └── QuickCapture.tsx    # Cmd+K модал быстрого добавления
+│   └── tasks/
+│       ├── TaskList.tsx        # List-вид + фильтрация + переключение на Kanban
+│       ├── TaskItem.tsx        # Строка задачи: чекбокс, приоритет, дата, таймер
+│       ├── TaskDetailPanel.tsx # Боковая панель (?task=id), статус/приоритет/подзадачи/время
+│       ├── KanbanBoard.tsx     # 3 колонки с drag-and-drop (@dnd-kit)
+│       ├── FilterBar.tsx       # Поиск + фильтр по приоритету
+│       └── QuickAddTask.tsx    # Быстрое добавление задачи в список/колонку
+├── pages/
+│   ├── InboxPage.tsx     # Задачи без проекта
+│   ├── GoalPage.tsx      # Список проектов цели
+│   └── ProjectPage.tsx   # Список задач проекта
+└── types/index.ts        # Все TypeScript-типы (Goal, Project, Task, TimeEntry...)
+```
+
+---
+
+## Запуск локально
+
+```bash
+git clone https://github.com/Pavel-Postnikov/GoalFlow.git
+cd GoalFlow
+npm install
+npm run dev
+```
+
+Открыть http://localhost:5173
+
+Для production-сборки:
+
+```bash
+npm run build
+npm run preview
+```
+
+---
+
+## Как пользоваться
+
+### Создание иерархии
+
+1. В сайдбаре нажать **+** рядом с «Цели» → ввести название цели → Enter
+2. Развернуть цель → нажать **+** → создать проект
+3. Перейти в проект → внизу списка нажать **Добавить задачу**
+4. Задачи без проекта живут в **Inbox** (ссылка вверху сайдбара)
+
+### Учёт времени
+
+- Навести на задачу → кнопка ▶ справа → таймер запущен
+- Счётчик `MM:SS` виден в хедере рядом с названием задачи
+- Нажать на оранжевую кнопку в хедере (или ■ в строке задачи) → остановить
+- История времени видна в панели деталей задачи
+
+### Детали задачи
+
+Нажать на название любой задачи → открывается боковая панель справа:
+- Редактирование названия и описания (сохраняется при потере фокуса)
+- Статус: **К выполнению / В работе / Готово**
+- Приоритет: Низкий / Средний / Высокий (повторный клик снимает)
+- Срок сдачи (просроченные — красным)
+- Подзадачи с чекбоксами
+- Лог затраченного времени
+
+### Kanban
+
+Переключатель вид **☰ / ⊞** в правом верхнем углу хедера.
+
+В Kanban-виде карточки можно перетаскивать между колонками — статус задачи обновляется мгновенно.
+
+### Фильтры
+
+Над списком задач / канбаном — строка фильтров:
+- Поиск по названию (реалтайм)
+- Фильтр по приоритету (клик на активный — сбрасывает)
+- Кнопка × — сбросить всё
+
+### Быстрое добавление (Cmd+K)
+
+`Cmd+K` (или `Ctrl+K` на Windows) → модал с инпутом → Enter → задача попадает в Inbox. Escape закрывает.
+
+### Экспорт
+
+Иконка ↓ в хедере → скачивает `goalflow-YYYY-MM-DD.json` со всеми целями, проектами и задачами.
+
+---
+
+## Деплой на Vercel
+
+В проекте уже есть `vercel.json` с SPA-rewrite (необходим для React Router):
+
+```json
+{ "rewrites": [{ "source": "/(.*)", "destination": "/" }] }
+```
+
+```bash
+npm install -g vercel
+vercel
+```
+
+Каждый `git push` в `main` деплоится автоматически (GitHub подключён).

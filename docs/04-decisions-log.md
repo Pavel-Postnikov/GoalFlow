@@ -87,4 +87,48 @@
 
 ---
 
-_Дальнейшие записи добавляются по мере принятия решений._
+## 2026-05-01: Роутинг — React Router вместо Zustand-навигации
+
+**Решение:** React Router v6 (`createBrowserRouter`), SPA-rewrite через `vercel.json`
+**Почему:** URL-based routing даёт deep linking, корректные Back/Forward, возможность шарить ссылки. `?task=id` query-param открывает TaskDetailPanel без смены маршрута — панель не ломает текущий URL.
+**Отвергнуто:** навигация через Zustand-стор — не работает с Vercel (прямой заход на /goals/:id даёт 404), нет Back/Forward браузера
+
+---
+
+## 2026-05-01: Фазы 1–4 (Роутинг, Sidebar, TaskList, TaskDetailPanel)
+
+**Решение:**
+- AppLayout: Sidebar + Header + main + TaskDetailPanel в flex-ряд
+- Sidebar: `useLiveQuery` на цели и проекты, GoalItem с click-outside меню, авторасширение по pathname
+- TaskItem: клик на заголовок → `setSearchParams({ task: id })`, таймер кнопка visible on hover
+- TaskDetailPanel: `w-[400px] shrink-0`, `?task=id` query param, редактирование title/description через onBlur
+**Почему:** `setSearchParams((prev) => { prev.set... return prev })` — merge-safe, не сбрасывает другие параметры; `task?.id` в useEffect — сброс локального стейта только при смене задачи, не при каждом DB update
+
+---
+
+## 2026-05-01: Фаза 5 — Таймер в хедере
+
+**Решение:** `setInterval(1000)` в `useEffect([active])` внутри Header, `Math.floor((Date.now() - startedAt) / 1000)`, формат `MM:SS` / `H:MM:SS`, `font-mono tabular-nums` чтобы цифры не прыгали
+**Почему:** таймер живёт в компоненте, а не в сторе — elapsed-секунды нужны только UI, не бизнес-логике
+
+---
+
+## 2026-05-01: Фаза 6 — Kanban и фильтры
+
+**Решение:** FilterBar с поиском и фильтром по приоритету (из useUIStore); KanbanBoard с 3 колонками (todo / in_progress / done); статус задачи добавлен в TaskDetailPanel как 3 кнопки
+**Почему:** фильтры в Zustand persist (viewMode), но сами значения фильтров не персистируются — при перезагрузке сбрасываются; статус в детальной панели закрывает единственный способ переводить задачи в in_progress
+
+---
+
+## 2026-05-01: Фаза 7 — Drag-and-drop (@dnd-kit)
+
+**Решение:** `@dnd-kit/core` + `@dnd-kit/utilities`; `PointerSensor` с `activationConstraint: { distance: 5 }` чтобы клик на карточку открывал панель, а не запускал drag; `DragOverlay` с `dropAnimation: null` для мгновенного скрытия; статус обновляется через `tasks.update` в `handleDragEnd`
+**Отвергнуто:** react-beautiful-dnd (не поддерживается, deprecated), HTML5 DnD API (нет кастомного оверлея)
+
+---
+
+## 2026-05-01: Деплой — Vercel
+
+**Решение:** Vercel CLI (`vercel --name goalflow`), `vercel.json` с SPA-rewrite `{ "source": "/(.*)", "destination": "/" }`
+**Почему:** `vercel.json` rewrite нужен чтобы прямой заход на `/goals/:id` отдавал `index.html`, а не 404 — React Router перехватывает роут на клиенте
+**URL:** https://goalflow-sigma.vercel.app
