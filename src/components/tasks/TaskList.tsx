@@ -1,6 +1,9 @@
+import { useUIStore } from '@/store/ui'
 import type { Task } from '@/types'
 import { TaskItem } from './TaskItem'
 import { QuickAddTask } from './QuickAddTask'
+import { FilterBar } from './FilterBar'
+import { KanbanBoard } from './KanbanBoard'
 
 interface Props {
   tasks: Task[]
@@ -8,11 +11,33 @@ interface Props {
 }
 
 export function TaskList({ tasks, projectId }: Props) {
-  const todo = tasks.filter((t) => t.status !== 'done')
-  const done = tasks.filter((t) => t.status === 'done')
+  const { viewMode, filters } = useUIStore()
+
+  let filtered = tasks
+  if (filters.search) {
+    const q = filters.search.toLowerCase()
+    filtered = filtered.filter((t) => t.title.toLowerCase().includes(q))
+  }
+  if (filters.priority) {
+    filtered = filtered.filter((t) => t.priority === filters.priority)
+  }
+
+  if (viewMode === 'kanban') {
+    return (
+      <div className="h-full flex flex-col">
+        <FilterBar />
+        <KanbanBoard tasks={filtered} projectId={projectId} />
+      </div>
+    )
+  }
+
+  const todo = filtered.filter((t) => t.status !== 'done')
+  const done = filtered.filter((t) => t.status === 'done')
 
   return (
     <div className="max-w-2xl">
+      <FilterBar />
+
       <div className="space-y-px">
         {todo.map((task) => (
           <TaskItem key={task.id} task={task} />

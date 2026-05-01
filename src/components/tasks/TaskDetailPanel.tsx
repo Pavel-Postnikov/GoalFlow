@@ -6,9 +6,15 @@ import { cn } from '@/lib/utils'
 import { db } from '@/db'
 import { tasks } from '@/db/queries'
 import { InlineCreate } from '@/components/layout/InlineCreate'
-import type { Priority, Task } from '@/types'
+import type { Priority, Task, TaskStatus } from '@/types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const STATUS_OPTIONS: { value: TaskStatus; label: string; activeClass: string }[] = [
+  { value: 'todo', label: 'К выполнению', activeClass: 'text-zinc-700 bg-zinc-200' },
+  { value: 'in_progress', label: 'В работе', activeClass: 'text-blue-700 bg-blue-100' },
+  { value: 'done', label: 'Готово', activeClass: 'text-green-700 bg-green-100' },
+]
 
 const PRIORITY_OPTIONS: { value: Priority; label: string; activeClass: string }[] = [
   { value: 'low', label: 'Низкий', activeClass: 'text-zinc-700 bg-zinc-200' },
@@ -131,8 +137,28 @@ export function TaskDetailPanel() {
 
         <div className="border-t border-zinc-100" />
 
-        {/* Priority & Due date */}
+        {/* Status, Priority & Due date */}
         <div className="px-5 py-4 space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-medium text-zinc-400 w-20 shrink-0">Статус</span>
+            <div className="flex gap-1">
+              {STATUS_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => tasks.update(task.id, { status: opt.value })}
+                  className={cn(
+                    'px-2 py-0.5 text-xs rounded font-medium transition-colors',
+                    task.status === opt.value
+                      ? opt.activeClass
+                      : 'text-zinc-400 hover:bg-zinc-100',
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex items-center gap-3">
             <span className="text-xs font-medium text-zinc-400 w-20 shrink-0">Приоритет</span>
             <div className="flex gap-1">
