@@ -1,7 +1,12 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db } from '@/db'
+import { TaskList } from '@/components/tasks/TaskList'
+
 export function InboxPage() {
-  return (
-    <div className="text-zinc-400 text-sm">
-      Задачи без проекта появятся здесь
-    </div>
+  const tasks = useLiveQuery(
+    () => db.tasks.filter((t) => !t.projectId && !t.parentId).toArray(),
+    [],
   )
+
+  return <TaskList tasks={tasks ?? []} />
 }
