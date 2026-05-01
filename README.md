@@ -148,17 +148,8 @@ npm run preview
 
 ---
 
-## Деплой на Vercel
+## Деплой
 
-В проекте уже есть `vercel.json` с SPA-rewrite (необходим для React Router):
+Проект задеплоен на Vercel: https://goalflow-sigma.vercel.app
 
-```json
-{ "rewrites": [{ "source": "/(.*)", "destination": "/" }] }
-```
-
-```bash
-npm install -g vercel
-vercel
-```
-
-Каждый `git push` в `main` деплоится автоматически (GitHub подключён).
+Каждый `git push` в `main` деплоится автоматически.
