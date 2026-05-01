@@ -1,20 +1,28 @@
-import { useLocation } from 'react-router-dom'
+import { useLocation, useParams } from 'react-router-dom'
 import { List, LayoutDashboard, Timer } from 'lucide-react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useUIStore } from '@/store/ui'
 import { useTimerStore } from '@/store/timer'
+import { db } from '@/db'
 import { cn } from '@/lib/utils'
-
-const PAGE_TITLES: Record<string, string> = {
-  '/': 'Inbox',
-}
 
 export function Header() {
   const { pathname } = useLocation()
+  const { goalId, projectId } = useParams()
   const { viewMode, setViewMode } = useUIStore()
   const active = useTimerStore((s) => s.active)
   const stop = useTimerStore((s) => s.stop)
 
-  const title = PAGE_TITLES[pathname] ?? 'GoalFlow'
+  const goal = useLiveQuery(() => (goalId ? db.goals.get(goalId) : undefined), [goalId])
+  const project = useLiveQuery(
+    () => (projectId ? db.projects.get(projectId) : undefined),
+    [projectId],
+  )
+
+  let title = 'GoalFlow'
+  if (pathname === '/') title = 'Inbox'
+  else if (goal) title = goal.title
+  else if (project) title = project.title
 
   return (
     <header className="h-14 shrink-0 flex items-center justify-between px-6 border-b border-zinc-200 bg-white">
