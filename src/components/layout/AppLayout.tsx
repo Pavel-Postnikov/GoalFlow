@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Header } from './Header'
+import { QuickCapture } from './QuickCapture'
 import { TaskDetailPanel } from '@/components/tasks/TaskDetailPanel'
 
 export function AppLayout() {
@@ -16,6 +17,7 @@ export function AppLayout() {
           <TaskDetailPanel />
         </div>
       </div>
+      <QuickCapture />
     </div>
   )
 }
