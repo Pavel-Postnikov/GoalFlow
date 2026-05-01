@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom'
 import { Circle, CheckCircle2, Play, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { tasks } from '@/db/queries'
@@ -21,12 +22,20 @@ interface Props {
 }
 
 export function TaskItem({ task }: Props) {
+  const [, setSearchParams] = useSearchParams()
   const active = useTimerStore((s) => s.active)
   const start = useTimerStore((s) => s.start)
   const stop = useTimerStore((s) => s.stop)
 
   const isTimerActive = active?.taskId === task.id
   const isDone = task.status === 'done'
+
+  function openDetail() {
+    setSearchParams((prev) => {
+      prev.set('task', task.id)
+      return prev
+    })
+  }
 
   function toggleStatus() {
     tasks.update(task.id, { status: isDone ? 'todo' : 'done' })
@@ -59,14 +68,15 @@ export function TaskItem({ task }: Props) {
         {isDone ? <CheckCircle2 size={18} /> : <Circle size={18} />}
       </button>
 
-      <span
+      <button
+        onClick={openDetail}
         className={cn(
-          'flex-1 text-sm min-w-0 truncate',
-          isDone ? 'line-through text-zinc-400' : 'text-zinc-900',
+          'flex-1 text-sm text-left min-w-0 truncate transition-colors',
+          isDone ? 'line-through text-zinc-400' : 'text-zinc-900 hover:text-indigo-600',
         )}
       >
         {task.title}
-      </span>
+      </button>
 
       {task.priority && (
         <span
