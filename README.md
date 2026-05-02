@@ -18,6 +18,7 @@
 | UI | Tailwind CSS v4 + shadcn/ui | Дизайн-система прямо в коде, shadcn копирует компоненты в проект — полный контроль |
 | Роутинг | React Router v6 | URL-based навигация, deep linking, корректные Back/Forward на Vercel |
 | D&D | @dnd-kit/core | Современная замена react-beautiful-dnd, поддержка PointerSensor |
+| AI | Groq API + openai SDK | Форматирование описаний задач через LLM; ключ скрыт за Vercel Edge Function |
 
 ---
 
@@ -75,6 +76,10 @@ src/
 │   ├── InboxPage.tsx     # Задачи без проекта
 │   ├── GoalPage.tsx      # Список проектов цели
 │   └── ProjectPage.tsx   # Список задач проекта
+├── lib/
+│   └── ai.ts             # AI-хелпер: dev → прямой вызов Groq, prod → /api/format-task
+├── api/
+│   └── format-task.ts    # Vercel Edge Function: проксирует запрос к Groq, скрывает ключ
 └── types/index.ts        # Все TypeScript-типы (Goal, Project, Task, TimeEntry...)
 ```
 
@@ -155,6 +160,14 @@ npm run preview
 ### Быстрое добавление (Cmd+K)
 
 `Cmd+K` (или `Ctrl+K` на Windows) → модал с инпутом → Enter → задача попадает в Inbox. Escape закрывает.
+
+### AI-форматирование описания
+
+Открыть задачу → написать описание в черновом виде → под полем появляется кнопка **«Отформатировать»** (иконка волшебной палочки).
+
+LLM структурирует текст, исправляет грамматику и пунктуацию, делает описание лаконичным. Язык сохраняется. Во время запроса кнопка показывает спиннер и заблокирована.
+
+> В production запрос идёт через Vercel Edge Function — API-ключ не виден в браузере.
 
 ### Экспорт
 

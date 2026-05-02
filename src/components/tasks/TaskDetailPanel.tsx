@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { X, Circle, CheckCircle2, Plus, Wand2 } from 'lucide-react'
+import { X, Circle, CheckCircle2, Plus, Wand2, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatTaskDescription } from '@/lib/ai'
 import { db } from '@/db'
@@ -147,7 +147,8 @@ export function TaskDetailPanel() {
             onBlur={() => tasks.update(task.id, { description: description || undefined })}
             rows={3}
             placeholder="Описание..."
-            className="w-full text-sm text-zinc-600 bg-transparent outline-none resize-none placeholder:text-zinc-300"
+            disabled={isFormatting}
+            className="w-full text-sm text-zinc-600 bg-transparent outline-none resize-none placeholder:text-zinc-300 transition-opacity disabled:opacity-40"
           />
           {description.trim() && (
             <div className="flex justify-end mt-1">
@@ -156,7 +157,9 @@ export function TaskDetailPanel() {
                 disabled={isFormatting}
                 className="flex items-center gap-1 text-xs text-zinc-400 hover:text-indigo-500 transition-colors disabled:opacity-40"
               >
-                <Wand2 size={11} />
+                {isFormatting
+                  ? <Loader2 size={11} className="animate-spin" />
+                  : <Wand2 size={11} />}
                 {isFormatting ? 'Форматирую...' : 'Отформатировать'}
               </button>
             </div>

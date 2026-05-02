@@ -13,12 +13,12 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   const client = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY,
-    baseURL: 'https://api.deepseek.com',
+    apiKey: process.env.GROQ_API_KEY,
+    baseURL: 'https://api.groq.com/openai/v1',
   })
 
   const completion = await client.chat.completions.create({
-    model: 'deepseek-chat',
+    model: 'llama-3.3-70b-versatile',
     messages: [
       {
         role: 'system',
