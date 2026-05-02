@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Inbox, Plus } from 'lucide-react'
+import { Inbox, Plus, FlaskConical } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { cn } from '@/lib/utils'
 import { db } from '@/db'
 import { goals as goalsQuery } from '@/db/queries'
+import { seedDemoData } from '@/db/seed'
 import { GoalItem } from './GoalItem'
 import { InlineCreate } from './InlineCreate'
 
@@ -20,6 +21,14 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 export function Sidebar() {
   const navigate = useNavigate()
   const [addingGoal, setAddingGoal] = useState(false)
+  const [seeding, setSeeding] = useState(false)
+
+  async function handleSeedDemo() {
+    setSeeding(true)
+    await seedDemoData()
+    setSeeding(false)
+    navigate('/goals/demo-goal-product')
+  }
 
   const allGoals = useLiveQuery(() => db.goals.orderBy('createdAt').toArray(), [])
   const allProjects = useLiveQuery(() => db.projects.orderBy('createdAt').toArray(), [])
@@ -77,6 +86,19 @@ export function Sidebar() {
           </div>
         </div>
       </nav>
+
+      {import.meta.env.DEV && (
+        <div className="p-2 border-t border-zinc-200">
+          <button
+            onClick={handleSeedDemo}
+            disabled={seeding}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors disabled:opacity-50"
+          >
+            <FlaskConical size={13} />
+            {seeding ? 'Загрузка...' : 'Загрузить демо-данные'}
+          </button>
+        </div>
+      )}
     </aside>
   )
 }
