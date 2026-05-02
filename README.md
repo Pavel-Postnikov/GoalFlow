@@ -167,3 +167,5 @@ npm run preview
 Проект задеплоен на Vercel: https://goalflow-sigma.vercel.app
 
 Каждый `git push` в `main` деплоится автоматически.
+
+**Figma-макеты:** https://www.figma.com/design/d6KzZOSWqsauO19NemeQ2s
