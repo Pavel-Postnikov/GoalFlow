@@ -145,10 +145,10 @@ export function TaskDetailPanel() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             onBlur={() => tasks.update(task.id, { description: description || undefined })}
-            rows={3}
+            rows={5}
             placeholder="Описание..."
             disabled={isFormatting}
-            className="w-full text-sm text-zinc-600 bg-transparent outline-none resize-none placeholder:text-zinc-300 transition-opacity disabled:opacity-40"
+            className="w-full text-sm text-zinc-600 bg-zinc-50 outline-none resize-y placeholder:text-zinc-300 transition-opacity disabled:opacity-40 overflow-y-auto border border-zinc-200 rounded-md px-3 py-2 focus:border-zinc-300 min-h-[100px]"
           />
           {description.trim() && (
             <div className="flex justify-end mt-1">
