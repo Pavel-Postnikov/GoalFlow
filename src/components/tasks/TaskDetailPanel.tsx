@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { X, Circle, CheckCircle2, Plus } from 'lucide-react'
+import { X, Circle, CheckCircle2, Plus, Wand2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatTaskDescription } from '@/lib/ai'
 import { db } from '@/db'
 import { tasks } from '@/db/queries'
 import { InlineCreate } from '@/components/layout/InlineCreate'
@@ -75,6 +76,7 @@ export function TaskDetailPanel() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [addingSubtask, setAddingSubtask] = useState(false)
+  const [isFormatting, setIsFormatting] = useState(false)
 
   useEffect(() => {
     if (task) {
@@ -88,6 +90,20 @@ export function TaskDetailPanel() {
       prev.delete('task')
       return prev
     })
+  }
+
+  async function handleFormat() {
+    if (!task || !description.trim()) return
+    setIsFormatting(true)
+    try {
+      const formatted = await formatTaskDescription(description)
+      setDescription(formatted)
+      await tasks.update(task.id, { description: formatted })
+    } catch {
+      // silent — пользователь видит что кнопка не сработала
+    } finally {
+      setIsFormatting(false)
+    }
   }
 
   async function handleAddSubtask(subTitle: string) {
@@ -133,6 +149,18 @@ export function TaskDetailPanel() {
             placeholder="Описание..."
             className="w-full text-sm text-zinc-600 bg-transparent outline-none resize-none placeholder:text-zinc-300"
           />
+          {description.trim() && (
+            <div className="flex justify-end mt-1">
+              <button
+                onClick={handleFormat}
+                disabled={isFormatting}
+                className="flex items-center gap-1 text-xs text-zinc-400 hover:text-indigo-500 transition-colors disabled:opacity-40"
+              >
+                <Wand2 size={11} />
+                {isFormatting ? 'Форматирую...' : 'Отформатировать'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="border-t border-zinc-100" />
